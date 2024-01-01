@@ -4,7 +4,9 @@
   "description": "web hook be",
   "main": "index.js",
   "author": "duynguyen",
-  "license": "MIT",
+  "engines": {
+    "node": "18.x"
+  },
   "dependencies": {
     "body-parser": "^1.20.2",
     "dotenv": "^16.3.1",
