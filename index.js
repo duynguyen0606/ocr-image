@@ -2,11 +2,17 @@ const express = require('express');
 const multer = require('multer');
 const Tesseract = require('tesseract.js');
 const fs = require('fs');
+const bodyParser = require('body-parser');
 const { createWorker } = require('tesseract.js');
 require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 3001;
+
+app.use(bodyParser.urlencoded({ extended: true }));
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 const upload = multer({ dest: 'uploads/' });
 
@@ -34,6 +40,84 @@ const recognizeText = async (imagePath) => {
 //   console.log(text);
 // });
 
+class NQueenSolver {
+  constructor(n) {
+    this.n = n;
+    this.chessBoard = Array.from({ length: n }, () => Array(n).fill(0));
+    this.result = '';
+    this.queenCount = 0;
+  }
+
+  isSafe(row, col) {
+    for (let i = 0; i < col; i++) {
+      if (this.chessBoard[row][i] === 1) {
+        return false;
+      }
+    }
+
+    for (let i = row, j = col; i >= 0 && j >= 0; i--, j--) {
+      if (this.chessBoard[i][j] === 1) {
+        return false;
+      }
+    }
+
+    for (let i = row, j = col; i < this.n && j >= 0; i++, j--) {
+      if (this.chessBoard[i][j] === 1) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  solve(col) {
+    if (col >= this.n) {
+      return true;
+    }
+
+    for (let i = 0; i < this.n; i++) {
+      if (this.isSafe(i, col)) {
+        this.chessBoard[i][col] = 1;
+        this.queenCount++;
+        if (this.solve(col + 1)) {
+          return true;
+        }
+        this.chessBoard[i][col] = 0; // backtrack
+        this.queenCount--;
+      }
+    }
+
+    return false;
+  }
+
+  solveNQueens() {
+    if (!this.solve(0)) {
+      this.result = 'No solution exists\n';
+      return;
+    }
+    this.printSolution();
+  }
+
+  printSolution() {
+    let sb = [];
+    for (let i = 0; i < this.n; i++) {
+      for (let j = 0; j < this.n; j++) {
+        sb.push(this.chessBoard[i][j] + ' ');
+      }
+      sb.push('\n');
+    }
+    this.result = sb.join('');
+  }
+
+  getResult() {
+    return this.result;
+  }
+
+  getQueenCount() {
+    return this.queenCount;
+  }
+}
+
 app.post('/upload', upload.single('image'), (req, res) => {
   if (!req.file) {
     return res.status(400).send('Không có tệp hình ảnh được gửi.');
@@ -43,19 +127,49 @@ app.post('/upload', upload.single('image'), (req, res) => {
   const imageBuffer = fs.readFileSync(req.file.path);
 
   // Mã hóa hình ảnh thành chuỗi Base64
-
+  let startTime = performance.now();
   Tesseract.recognize(imageBuffer, 'eng', {
     logger: (e) => console.log(e),
   }).then(({ data: { text } }) => {
-    console.log(text);
-    return res.status(200).json(text);
+    let endTime = performance.now();
+    fs.unlink(req.file.path, (err) => {
+      if (err) {
+        console.error('Lỗi khi xoá tệp:', err);
+      } else {
+        console.log('Tệp đã được xoá thành công.');
+      }
+
+      // Trả kết quả về client
+      return res.status(200).json({
+        text,
+        time: endTime - startTime,
+      });
+    });
+
+    // return res.status(200).json({
+    //   text,
+    //   time: endTime - startTime,
+    // });
   });
+});
 
-  // Xóa tệp hình ảnh tạm thời sau khi đã đọc và mã hóa nó
-  // fs.unlinkSync(req.file.path);
+app.post('/n-queen', (req, res) => {
+  const nInput = req.body.nInput;
 
-  // // Trả về chuỗi Base64 cho máy khách
-  // res.send({ base64Image });
+  if (typeof nInput == 'number') {
+    let startTime = performance.now();
+    const solver = new NQueenSolver(nInput); // Thay đổi giá trị N theo yêu cầu
+    solver.solveNQueens();
+    console.log(solver.getResult());
+    console.log('Number of Queens: ' + solver.getQueenCount());
+    let endTime = performance.now();
+
+    return res.status(200).json({
+      result: solver.getResult(),
+      number: solver.getQueenCount(),
+      timer: endTime - startTime,
+    });
+  }
 });
 
 app.listen(port, () => {
