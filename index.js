@@ -11,8 +11,8 @@ const port = process.env.PORT || 3001;
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 const upload = multer({ dest: 'uploads/' });
 
@@ -118,13 +118,14 @@ class NQueenSolver {
   }
 }
 
-app.post('/upload', upload.single('image'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).send('Không có tệp hình ảnh được gửi.');
+app.post('/upload', (req, res) => {
+  const { base64Image } = req.body;
+  if (!base64Image) {
+    return res.status(400).send('Base64 không được gửi');
   }
 
   // Đọc hình ảnh từ ổ đĩa
-  const imageBuffer = fs.readFileSync(req.file.path);
+  const imageBuffer = Buffer.from(base64Image, 'base64');
 
   // Mã hóa hình ảnh thành chuỗi Base64
   let startTime = performance.now();
@@ -132,24 +133,10 @@ app.post('/upload', upload.single('image'), (req, res) => {
     logger: (e) => console.log(e),
   }).then(({ data: { text } }) => {
     let endTime = performance.now();
-    fs.unlink(req.file.path, (err) => {
-      if (err) {
-        console.error('Lỗi khi xoá tệp:', err);
-      } else {
-        console.log('Tệp đã được xoá thành công.');
-      }
-
-      // Trả kết quả về client
-      return res.status(200).json({
-        text,
-        time: endTime - startTime,
-      });
+    return res.status(200).json({
+      text,
+      time: endTime - startTime,
     });
-
-    // return res.status(200).json({
-    //   text,
-    //   time: endTime - startTime,
-    // });
   });
 });
 
@@ -166,7 +153,7 @@ app.post('/n-queen', (req, res) => {
 
     return res.status(200).json({
       result: solver.getResult(),
-      number: solver.getQueenCount(),
+      count: solver.getQueenCount(),
       timer: endTime - startTime,
     });
   }
