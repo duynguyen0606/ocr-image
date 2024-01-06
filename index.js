@@ -119,13 +119,13 @@ class NQueenSolver {
 }
 
 app.post('/upload', (req, res) => {
-  const { base64Image } = req.body;
-  if (!base64Image) {
+  const { image } = req.body;
+  if (!image) {
     return res.status(400).send('Base64 không được gửi');
   }
 
   // Đọc hình ảnh từ ổ đĩa
-  const imageBuffer = Buffer.from(base64Image, 'base64');
+  const imageBuffer = Buffer.from(image, 'base64');
 
   // Mã hóa hình ảnh thành chuỗi Base64
   let startTime = performance.now();
