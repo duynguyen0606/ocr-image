@@ -134,7 +134,7 @@ app.post('/upload', (req, res) => {
   }).then(({ data: { text } }) => {
     let endTime = performance.now();
     return res.status(200).json({
-      text,
+      result: text,
       time: endTime - startTime,
     });
   });
