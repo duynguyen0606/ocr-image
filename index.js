@@ -5,10 +5,12 @@ const fs = require('fs');
 const bodyParser = require('body-parser');
 const { createWorker } = require('tesseract.js');
 require('dotenv').config();
+var cors = require('cors');
 
 const app = express();
 const port = process.env.PORT || 3001;
 
+app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(express.json({ limit: '50mb' }));
